@@ -1,0 +1,89 @@
+
+#include <FirebaseArduino.h>
+#include <ESP8266WiFi.h>
+#include <HX711.h>
+
+// HX711 circuit wiring
+ const int LOADCELL_DOUT_PIN = 2;
+ const int LOADCELL_SCK_PIN = 3;
+//An HX711 class initializes like this:
+ HX711 scale;
+ 
+//To connect to firebase
+ #define FIREBASE_HOST " https://final-project-4dc25-default-rtdb.firebaseio.com/ "
+ #define FIREBASE_AUTH " jI1bbvB3Vnck4eSggugl7S8PVMpmnX4MTqPDrrFD "
+
+//To connect to wifi
+ #define WIFI_SSID " Etisalat W.S.D.A "
+ #define WIFI_PASSWORD " AWDS01010481270@# "
+   
+   long reading;
+   float grams;
+ 
+void setup() {
+     Serial.begin(9600);
+  // you can start using the class functions starting with this inside setup():
+      scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+
+      WiFi.begin( WIFI_SSID, WIFI_PASSWORD);
+      Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH );
+       
+}
+ 
+void loop() {
+ //The scale.ready() function returns TRUE if the HX711 is now sending data. Then you can read the data using:
+ // y = 0.00266 x - 996 
+ //In this equation, y is the unknown weight in grams while x is the value from the scale.read() function.
+   if (WiFi.status() != WL_CONNECTED)   // Check WiFi connection status
+  {
+    Serial.print("Attempting to connect to SSID: ");
+    Serial.println(WIFI_SSID);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+      WiFi.begin( WIFI_SSID, WIFI_PASSWORD);      
+      Serial.print(".");    
+      delay(5000);
+    }
+    Serial.println("\nConnected.");
+  }
+
+  if (scale.is_ready()) 
+   {
+     reading = scale.read() * 266;
+     grams = (float)reading / 100000.0;
+     grams = grams - 996.0;
+    /*By serial Monitor
+      Serial.print("HX711 reading: ");
+      Serial.print(grams);
+      Serial.println(" g");*/
+    //set Float  value
+      Firebase.setFloat(grams ,"Grams");
+    //handle error
+     if (Firebase.failed()) {
+       Serial.print("setting /Grams failed:");
+       Serial.println(Firebase.error()); 
+       }
+     else{   
+       //By Firebase
+      Serial.print("Grams: ");
+      Serial.println(Firebase.getFloat("Grams"));
+      }
+   }
+    
+  else {
+    Serial.println("HX711 not found.");
+  }
+  delay(1000);
+  
+  if( grams > 50 ){
+     Serial.print(" This parking is full ");
+  }
+  else{
+    Serial.print("This parking is free ");
+  }
+     else {
+      Serial.print("Grams: ");
+      Serial.println(Firebase.getFloat("Grams"));
+      }
+    }
+  } 
